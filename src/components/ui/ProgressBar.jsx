@@ -1,24 +1,42 @@
-// client/src/components/ui/ProgressBar.jsx
-import {cn} from "@utils/cn";
+import React from "react";
 
-const ProgressBar = ({value = 0, max = 100, className, showLabel = false}) => {
+export const ProgressBar = ({
+	value,
+	max = 100,
+	showLabel = true,
+	size = "md",
+	color = "yellow",
+}) => {
 	const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+
+	const sizes = {
+		sm: "h-1",
+		md: "h-2",
+		lg: "h-3",
+	};
+
+	const colors = {
+		yellow: "bg-gradient-to-r from-yellow-400 to-amber-500",
+		green: "bg-gradient-to-r from-green-400 to-emerald-500",
+		blue: "bg-gradient-to-r from-blue-400 to-cyan-500",
+		red: "bg-gradient-to-r from-red-400 to-rose-500",
+	};
 
 	return (
 		<div className="w-full">
-			{showLabel && (
-				<div className="flex items-center justify-between mb-2">
-					<span className="text-sm text-gray-600">Progress</span>
-					<span className="text-sm font-medium text-gray-900">
-						{Math.round(percentage)}%
-					</span>
-				</div>
-			)}
-			<div className={cn("progress-bar", className)}>
-				<div className="progress-fill" style={{width: `${percentage}%`}} />
+			<div
+				className={`w-full bg-gray-700 rounded-full overflow-hidden ${sizes[size]}`}
+			>
+				<div
+					className={`${colors[color]} ${sizes[size]} rounded-full transition-all duration-500 ease-out`}
+					style={{width: `${percentage}%`}}
+				/>
 			</div>
+			{showLabel && (
+				<p className="mt-1 text-xs text-gray-400 text-right">
+					{Math.round(percentage)}%
+				</p>
+			)}
 		</div>
 	);
 };
-
-export default ProgressBar;

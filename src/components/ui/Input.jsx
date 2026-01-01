@@ -1,58 +1,38 @@
-// client/src/components/ui/Input.jsx
-import {forwardRef} from "react";
-import {cn} from "@utils/cn";
+import React, {forwardRef} from "react";
 
-const Input = forwardRef(
-	(
-		{
-			label,
-			error,
-			helperText,
-			leftIcon,
-			rightIcon,
-			className,
-			containerClassName,
-			...props
-		},
-		ref
-	) => {
+export const Input = forwardRef(
+	({label, error, icon: Icon, className = "", ...props}, ref) => {
 		return (
-			<div className={cn("w-full", containerClassName)}>
-				{label && <label className="label">{label}</label>}
-
+			<div className="space-y-1">
+				{label && (
+					<label className="block text-sm font-medium text-gray-300">
+						{label}
+					</label>
+				)}
 				<div className="relative">
-					{leftIcon && (
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-							{leftIcon}
+					{Icon && (
+						<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<Icon className="h-5 w-5 text-gray-400" />
 						</div>
 					)}
-
 					<input
 						ref={ref}
-						className={cn(
-							"input",
-							error && "input-error",
-							leftIcon && "pl-10",
-							rightIcon && "pr-10",
-							className
-						)}
+						className={`
+              w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl
+              text-white placeholder-gray-400
+              focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent
+              transition-all duration-200
+              ${Icon ? "pl-10" : ""}
+              ${error ? "border-red-500" : ""}
+              ${className}
+            `}
 						{...props}
 					/>
-
-					{rightIcon && (
-						<div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-							{rightIcon}
-						</div>
-					)}
 				</div>
-
-				{error && <p className="error-text">{error}</p>}
-				{!error && helperText && <p className="helper-text">{helperText}</p>}
+				{error && <p className="text-sm text-red-400">{error}</p>}
 			</div>
 		);
 	}
 );
 
 Input.displayName = "Input";
-
-export default Input;

@@ -1,141 +1,138 @@
-// client/src/hooks/useProject.js
-import {useState} from "react";
-import {useProjectStore} from "@store/projectStore";
+import {useState, useEffect, useCallback} from "react";
 import projectService from "@services/project.service";
+import imageService from "@services/image.service";
+import clipService from "@services/clip.service";
 import toast from "react-hot-toast";
 
-export const useProject = () => {
-	const {
-		projects,
-		currentProject,
-		setProjects,
-		addProject,
-		updateProject,
-		removeProject,
-		setCurrentProject,
-		setLoading,
-	} = useProjectStore();
+export const useProject = (projectId) => {
+	const [project, setProject] = useState(null);
+	const [images, setImages] = useState([]);
+	const [clips, setClips] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const [loading, setLocalLoading] = useState(false);
+	const fetchProject = useCallback(async () => {
+		if (!projectId) return;
 
-	const fetchProjects = async (params) => {
 		try {
 			setLoading(true);
-			const response = await projectService.getProjects(params);
-			setProjects(response.data.projects);
-			return {success: true, data: response.data.projects};
+			const [projectData, imagesData, clipsData] = await Promise.all([
+				projectService.getProject(projectId),
+				imageService.getImages(projectId),
+				clipService.getClips(projectId),
+			]);
+
+			setProject(projectData.project || projectData);
+			setImages(imagesData.images || imagesData || []);
+			setClips(clipsData.clips || clipsData || []);
+			setError(null);
 		} catch (err) {
-			toast.error("Failed to load projects");
-			return {success: false, error: err.message};
+			setError(err.message);
+			toast.error("Failed to load project");
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [projectId]);
 
-	const fetchProject = async (id) => {
-		try {
-			setLocalLoading(true);
-			const response = await projectService.getProject(id);
-			setCurrentProject(response.data.project);
-			return {success: true, data: response.data.project};
-		} catch (err) {
-			toast.error("Failed to load project");
-			return {success: false, error: err.message};
-		} finally {
-			setLocalLoading(false);
-		}
-	};
+	const uploadImage = useCallback(
+		async (file, onProgress) => {
+			try {
+				const result = await imageService.uploadImage(
+					projectId,
+					file,
+					onProgress
+				);
+				const newImage = result.image || result;
+				setImages((prev) => [...prev, newImage]);
+				toast.success("Image uploaded successfully!");
+				return newImage;
+			} catch (err) {
+				toast.error("Failed to upload image");
+				throw err;
+			}
+		},
+		[projectId]
+	);
 
-	const createProject = async (projectData) => {
-		try {
-			setLocalLoading(true);
-			const response = await projectService.createProject(projectData);
-			addProject(response.data.project);
-			toast.success("Project created successfully");
-			return {success: true, data: response.data.project};
-		} catch (err) {
-			const message = err.response?.data?.message || "Failed to create project";
-			toast.error(message);
-			return {success: false, error: message};
-		} finally {
-			setLocalLoading(false);
-		}
-	};
+	const deleteImage = useCallback(
+		async (imageId) => {
+			try {
+				await imageService.deleteImage(projectId, imageId);
+				setImages((prev) => prev.filter((img) => img.id !== imageId));
+				toast.success("Image deleted");
+			} catch (err) {
+				toast.error("Failed to delete image");
+				throw err;
+			}
+		},
+		[projectId]
+	);
 
-	const deleteProject = async (id) => {
-		try {
-			await projectService.deleteProject(id);
-			removeProject(id);
-			toast.success("Project deleted successfully");
-			return {success: true};
-		} catch (err) {
-			toast.error("Failed to delete project");
-			return {success: false, error: err.message};
-		}
-	};
+	const generateClip = useCallback(
+		async (imageId, options = {}) => {
+			try {
+				const clip = await clipService.generateClip(
+					projectId,
+					imageId,
+					options
+				);
+				setClips((prev) => [...prev, clip]);
+				toast.success("Clip generation started!");
+				return clip;
+			} catch (err) {
+				toast.error("Failed to generate clip");
+				throw err;
+			}
+		},
+		[projectId]
+	);
 
-	const scrapeRealEstateImages = async (url) => {
-		try {
-			setLocalLoading(true);
-			const response = await projectService.scrapeImages(url);
+	const refreshClip = useCallback(
+		async (clipId) => {
+			try {
+				const updatedClip = await clipService.getClip(projectId, clipId);
+				setClips((prev) =>
+					prev.map((c) => (c.id === clipId ? updatedClip : c))
+				);
+				return updatedClip;
+			} catch (err) {
+				console.error("Failed to refresh clip:", err);
+				throw err;
+			}
+		},
+		[projectId]
+	);
 
-			// ✅ Access response.data.images and add IDs
-			const imagesWithIds = response.data.images.map((img, index) => ({
-				...img,
-				id: index,
-			}));
+	const deleteClip = useCallback(
+		async (clipId) => {
+			try {
+				await clipService.deleteClip(projectId, clipId);
+				setClips((prev) => prev.filter((c) => c.id !== clipId));
+				toast.success("Clip deleted");
+			} catch (err) {
+				toast.error("Failed to delete clip");
+				throw err;
+			}
+		},
+		[projectId]
+	);
 
-			toast.success(`Found ${imagesWithIds.length} images`);
-			return {success: true, data: imagesWithIds};
-		} catch (err) {
-			const message =
-				err.response?.data?.message || "Failed to scrape images from URL";
-			toast.error(message);
-			return {success: false, error: message};
-		} finally {
-			setLocalLoading(false);
-		}
-	};
+	useEffect(() => {
+		fetchProject();
+	}, [fetchProject]);
 
-	const generateVideo = async (projectId, options) => {
-		try {
-			setLocalLoading(true);
-			const response = await projectService.generateVideo(projectId, options);
-			toast.success("Video generation started!");
-			return {success: true, data: response.data};
-		} catch (err) {
-			const message = err.response?.data?.message || "Failed to generate video";
-			toast.error(message);
-			return {success: false, error: message};
-		} finally {
-			setLocalLoading(false);
-		}
-	};
-
-	const handleUpdateProject = async (id, updates) => {
-		try {
-			setLocalLoading(true);
-			const response = await projectService.updateProject(id, updates);
-			updateProject(id, response.data.project);
-			return {success: true, data: response.data.project};
-		} catch (err) {
-			const message = err.response?.data?.message || "Failed to update project";
-			toast.error(message);
-			return {success: false, error: message};
-		} finally {
-			setLocalLoading(false);
-		}
-	};
 	return {
-		projects,
-		currentProject,
-		loading: loading || useProjectStore.getState().isLoading,
-		fetchProjects,
+		project,
+		images,
+		clips,
+		loading,
+		error,
 		fetchProject,
-		createProject,
-		deleteProject,
-		scrapeImages: scrapeRealEstateImages,
-		generateVideo,
-		updateProject: handleUpdateProject,
+		uploadImage,
+		deleteImage,
+		generateClip,
+		refreshClip,
+		deleteClip,
+		refetch: fetchProject,
 	};
 };

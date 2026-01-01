@@ -1,58 +1,44 @@
-// client/src/components/ui/Select.jsx
-import {forwardRef} from "react";
-import {cn} from "@utils/cn";
-import {HiChevronDown} from "react-icons/hi";
+import React from "react";
+import {ChevronDown} from "lucide-react";
 
-const Select = forwardRef(
-	(
-		{
-			label,
-			error,
-			helperText,
-			options = [],
-			placeholder,
-			className,
-			containerClassName,
-			...props
-		},
-		ref
-	) => {
-		return (
-			<div className={cn("w-full", containerClassName)}>
-				{label && <label className="label">{label}</label>}
-
-				<div className="relative">
-					<select
-						ref={ref}
-						className={cn(
-							"input pr-10 appearance-none cursor-pointer",
-							error && "input-error",
-							className
-						)}
-						{...props}
-					>
-						{placeholder && (
-							<option value="" disabled>
-								{placeholder}
-							</option>
-						)}
-						{options.map((option) => (
-							<option key={option.value} value={option.value}>
-								{option.label}
-							</option>
-						))}
-					</select>
-
-					<HiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-				</div>
-
-				{error && <p className="error-text">{error}</p>}
-				{!error && helperText && <p className="helper-text">{helperText}</p>}
+export const Select = ({
+	label,
+	options,
+	value,
+	onChange,
+	placeholder = "Select an option",
+	className = "",
+}) => {
+	return (
+		<div className="space-y-1">
+			{label && (
+				<label className="block text-sm font-medium text-gray-300">
+					{label}
+				</label>
+			)}
+			<div className="relative">
+				<select
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					className={`
+            w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl
+            text-white appearance-none cursor-pointer
+            focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent
+            transition-all duration-200
+            ${className}
+          `}
+				>
+					<option value="" disabled>
+						{placeholder}
+					</option>
+					{options.map((option) => (
+						<option key={option.value} value={option.value}>
+							{option.label}
+						</option>
+					))}
+				</select>
+				<ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
 			</div>
-		);
-	}
-);
-
-Select.displayName = "Select";
-
-export default Select;
+		</div>
+	);
+};
